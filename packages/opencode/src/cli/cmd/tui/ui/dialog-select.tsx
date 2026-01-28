@@ -59,6 +59,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     on(
       () => props.current,
       (current) => {
+        if (destroyed) return
         if (current) {
           const currentIndex = flat().findIndex((opt) => isDeepEqual(opt.value, current))
           if (currentIndex >= 0) {
@@ -107,6 +108,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   // that the mouseover event doesn't trigger when filtering.
   createEffect(() => {
     filtered()
+    if (destroyed) return
     setStore("input", "keyboard")
   })
 
@@ -187,6 +189,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 
   const keybind = useKeybind()
   useKeyboard((evt) => {
+    if (destroyed) return
     setStore("input", "keyboard")
 
     if (evt.name === "up" || (evt.ctrl && evt.name === "p")) move(-1)
