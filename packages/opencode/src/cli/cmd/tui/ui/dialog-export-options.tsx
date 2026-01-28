@@ -46,6 +46,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
 
   useKeyboard((evt) => {
     if (evt.name === "return") {
+      if (destroyed || !textarea || textarea.isDestroyed) return
       props.onConfirm?.({
         filename: textarea.plainText,
         thinking: store.thinking,
@@ -102,6 +103,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
         </box>
         <textarea
           onSubmit={() => {
+            if (destroyed || !textarea || textarea.isDestroyed) return
             props.onConfirm?.({
               filename: textarea.plainText,
               thinking: store.thinking,
