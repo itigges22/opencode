@@ -34,7 +34,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         timeout = setTimeout(() => {
           if (!store.leader) return
           leader(false)
-          if (focus) {
+          if (focus && !focus.isDestroyed) {
             focus.focus()
           }
         }, 2000)
@@ -42,7 +42,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       }
 
       if (!active) {
-        if (focus && !renderer.currentFocusedRenderable) {
+        if (focus && !focus.isDestroyed && !renderer.currentFocusedRenderable) {
           focus.focus()
         }
         setStore("leader", false)
@@ -57,7 +57,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
 
       if (store.leader && evt.name) {
         setImmediate(() => {
-          if (focus && renderer.currentFocusedRenderable === focus) {
+          if (focus && !focus.isDestroyed && renderer.currentFocusedRenderable === focus) {
             focus.focus()
           }
           leader(false)

@@ -368,8 +368,10 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
                         ref={(val: TextareaRenderable) => {
                           textarea = val
                           queueMicrotask(() => {
-                            val.focus()
-                            val.gotoLineEnd()
+                            if (val && !val.isDestroyed) {
+                              val.focus()
+                              val.gotoLineEnd()
+                            }
                           })
                         }}
                         initialValue={input()}

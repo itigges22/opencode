@@ -95,9 +95,11 @@ export function Prompt(props: PromptProps) {
   sdk.event.on(TuiEvent.PromptAppend.type, (evt) => {
     input.insertText(evt.properties.text)
     setTimeout(() => {
-      input.getLayoutNode().markDirty()
-      input.gotoBufferEnd()
-      renderer.requestRender()
+      if (input && !input.isDestroyed) {
+        input.getLayoutNode().markDirty()
+        input.gotoBufferEnd()
+        renderer.requestRender()
+      }
     }, 0)
   })
 
@@ -924,8 +926,10 @@ export function Prompt(props: PromptProps) {
 
                 // Force layout update and render for the pasted content
                 setTimeout(() => {
-                  input.getLayoutNode().markDirty()
-                  renderer.requestRender()
+                  if (input && !input.isDestroyed) {
+                    input.getLayoutNode().markDirty()
+                    renderer.requestRender()
+                  }
                 }, 0)
               }}
               ref={(r: TextareaRenderable) => {
@@ -935,7 +939,9 @@ export function Prompt(props: PromptProps) {
                 }
                 props.ref?.(ref)
                 setTimeout(() => {
-                  input.cursorColor = theme.text
+                  if (input && !input.isDestroyed) {
+                    input.cursorColor = theme.text
+                  }
                 }, 0)
               }}
               onMouseDown={(r: MouseEvent) => r.target?.focus()}
