@@ -137,6 +137,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   createEffect(
     on([() => store.filter, () => props.current], ([filter, current]) => {
       setTimeout(() => {
+        if (destroyed) return
         if (filter.length > 0) {
           moveTo(0, true)
         } else if (current) {
@@ -158,10 +159,11 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   }
 
   function moveTo(next: number, center = false) {
+    if (destroyed) return
     setStore("selected", next)
     const option = selected()
     if (option) props.onMove?.(option)
-    if (!scroll) return
+    if (!scroll || scroll.isDestroyed) return
     const target = scroll.getChildren().find((child) => {
       return child.id === JSON.stringify(selected()?.value)
     })
