@@ -100,10 +100,11 @@ export function createDialogProviderOptions() {
             }
             if (method.type === "api") {
               // Use special flow for selfhosted to collect URL + API key
+              // Use setTimeout to ensure all event processing is complete before replacing
               if (provider.id === "selfhosted") {
-                return dialog.replace(() => <SelfhostedMethod />)
+                return setTimeout(() => dialog.replace(() => <SelfhostedMethod />), 0)
               }
-              return dialog.replace(() => <ApiMethod providerID={provider.id} title={method.label} />)
+              return setTimeout(() => dialog.replace(() => <ApiMethod providerID={provider.id} title={method.label} />), 0)
             }
           },
         }
