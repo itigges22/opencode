@@ -105,13 +105,21 @@ function init() {
       for (const item of store.stack) {
         if (item.onClose) item.onClose()
       }
-      setStore("size", "medium")
-      setStore("stack", [
-        {
-          element: input,
-          onClose,
-        },
-      ])
+      // Clear stack first to ensure old component is fully destroyed
+      // before mounting the new one
+      batch(() => {
+        setStore("size", "medium")
+        setStore("stack", [])
+      })
+      // Use queueMicrotask to ensure cleanup completes before mounting new component
+      queueMicrotask(() => {
+        setStore("stack", [
+          {
+            element: input,
+            onClose,
+          },
+        ])
+      })
     },
     get stack() {
       return store.stack
