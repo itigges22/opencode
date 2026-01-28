@@ -197,16 +197,19 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     if (evt.name === "end") moveTo(flat().length - 1)
 
     if (evt.name === "return") {
+      if (destroyed) return
       const option = selected()
       if (option) {
         evt.preventDefault()
         evt.stopPropagation()
         if (option.onSelect) option.onSelect(dialog)
+        if (destroyed) return
         props.onSelect?.(option)
       }
     }
 
     for (const item of props.keybind ?? []) {
+      if (destroyed) return
       if (item.disabled || !item.keybind) continue
       if (Keybind.match(item.keybind, keybind.parse(evt))) {
         const s = selected()
