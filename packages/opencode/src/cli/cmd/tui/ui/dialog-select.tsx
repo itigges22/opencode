@@ -205,6 +205,10 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       if (destroyed) return
       const option = selected()
       if (option) {
+        // Blur input before calling onSelect to prevent EditBuffer access during destruction
+        if (input && !input.isDestroyed) {
+          input.blur()
+        }
         if (option.onSelect) option.onSelect(dialog)
         if (destroyed) return
         props.onSelect?.(option)
@@ -319,6 +323,10 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                         }}
                         onMouseUp={() => {
                           if (destroyed) return
+                          // Blur input before calling onSelect to prevent EditBuffer access during destruction
+                          if (input && !input.isDestroyed) {
+                            input.blur()
+                          }
                           option.onSelect?.(dialog)
                           if (destroyed) return
                           props.onSelect?.(option)
