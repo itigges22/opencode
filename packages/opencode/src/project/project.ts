@@ -13,9 +13,15 @@ import { BusEvent } from "@/bus/bus-event"
 import { iife } from "@/util/iife"
 import { GlobalBus } from "@/bus/global"
 import { existsSync } from "fs"
+import { Guardrails } from "../rag/guardrails"
 
 export namespace Project {
   const log = Log.create({ service: "project" })
+
+  // Re-export guardrail errors for external use
+  export const DangerousPathError = Guardrails.DangerousPathError
+  export const NoProjectMarkerError = Guardrails.NoProjectMarkerError
+
   export const Info = z
     .object({
       id: z.string(),
@@ -52,6 +58,11 @@ export namespace Project {
 
   export async function fromDirectory(directory: string) {
     log.info("fromDirectory", { directory })
+
+    // Validate directory safety if RAG guardrails are enabled
+    if (!Flag.OPENCODE_DISABLE_GUARDRAILS) {
+      await Guardrails.validateProjectDirectory(directory)
+    }
 
     const { id, sandbox, worktree, vcs } = await iife(async () => {
       const matches = Filesystem.up({ targets: [".git"], start: directory })

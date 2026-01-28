@@ -3,6 +3,7 @@ import { Config } from "../config/config"
 import { MCP } from "../mcp"
 import { Provider } from "../provider/provider"
 import { UI } from "./ui"
+import { Guardrails } from "../rag/guardrails"
 
 export function FormatError(input: unknown) {
   if (MCP.Failed.isInstance(input))
@@ -38,6 +39,14 @@ export function FormatError(input: unknown) {
     ].join("\n")
 
   if (UI.CancelledError.isInstance(input)) return ""
+
+  // Handle guardrail errors for blocked directories
+  if (Guardrails.DangerousPathError.isInstance(input)) {
+    return input.data.reason
+  }
+  if (Guardrails.NoProjectMarkerError.isInstance(input)) {
+    return Guardrails.getBlockedPathMessage(input)
+  }
 }
 
 export function FormatUnknownError(input: unknown): string {

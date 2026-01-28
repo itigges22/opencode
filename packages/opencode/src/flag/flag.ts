@@ -24,6 +24,7 @@ export namespace Flag {
   export const OPENCODE_DISABLE_CLAUDE_CODE_SKILLS =
     OPENCODE_DISABLE_CLAUDE_CODE || truthy("OPENCODE_DISABLE_CLAUDE_CODE_SKILLS")
   export declare const OPENCODE_DISABLE_PROJECT_CONFIG: boolean
+  export declare const OPENCODE_DISABLE_GUARDRAILS: boolean
   export const OPENCODE_FAKE_VCS = process.env["OPENCODE_FAKE_VCS"]
   export const OPENCODE_CLIENT = process.env["OPENCODE_CLIENT"] ?? "cli"
   export const OPENCODE_SERVER_PASSWORD = process.env["OPENCODE_SERVER_PASSWORD"]
@@ -74,6 +75,16 @@ Object.defineProperty(Flag, "OPENCODE_DISABLE_PROJECT_CONFIG", {
 Object.defineProperty(Flag, "OPENCODE_CONFIG_DIR", {
   get() {
     return process.env["OPENCODE_CONFIG_DIR"]
+  },
+  enumerable: true,
+  configurable: false,
+})
+
+// Dynamic getter for OPENCODE_DISABLE_GUARDRAILS
+// Allows disabling project directory safety checks
+Object.defineProperty(Flag, "OPENCODE_DISABLE_GUARDRAILS", {
+  get() {
+    return truthy("OPENCODE_DISABLE_GUARDRAILS")
   },
   enumerable: true,
   configurable: false,

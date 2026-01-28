@@ -1044,6 +1044,16 @@ export namespace Config {
           prune: z.boolean().optional().describe("Enable pruning of old tool outputs (default: true)"),
         })
         .optional(),
+      rag: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable RAG (Retrieval-Augmented Generation) integration"),
+          url: z.string().optional().describe("RAG API base URL (e.g., http://localhost:8001)"),
+          api_key: z.string().optional().describe("API key for authenticating with RAG service"),
+          auto_sync: z.boolean().optional().describe("Automatically sync codebase on project open (default: true)"),
+          sync_on_open: z.boolean().optional().describe("Sync project when first opened (default: true)"),
+        })
+        .optional()
+        .describe("RAG integration settings for enhanced code context"),
       experimental: z
         .object({
           hook: z
