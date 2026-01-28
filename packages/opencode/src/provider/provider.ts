@@ -179,16 +179,29 @@ export namespace Provider {
     },
     selfhosted: async () => {
       const config = await Config.get()
-      if (!config.selfhosted?.baseURL) {
+      const auth = await Auth.get("selfhosted")
+
+      // Get baseURL from config or environment
+      const baseURL = config.selfhosted?.baseURL
+        || process.env.SELFHOSTED_API_URL
+        || process.env.RAG_API_URL
+
+      if (!baseURL) {
         return { autoload: false }
       }
+
+      // Get API key from auth storage, config, or environment
+      const apiKey = (auth?.type === "api" ? auth.key : undefined)
+        || config.selfhosted?.apiKey
+        || process.env.SELFHOSTED_API_KEY
+        || process.env.RAG_API_KEY
+        || "no-key"
+
       return {
         autoload: true,
         options: {
-          baseURL: config.selfhosted.baseURL.endsWith("/v1")
-            ? config.selfhosted.baseURL
-            : `${config.selfhosted.baseURL}/v1`,
-          apiKey: config.selfhosted.apiKey || process.env.SELFHOSTED_API_KEY || process.env.RAG_API_KEY || "no-key",
+          baseURL: baseURL.endsWith("/v1") ? baseURL : `${baseURL}/v1`,
+          apiKey,
         },
       }
     },
