@@ -737,8 +737,39 @@ export namespace Provider {
 
     if (selfhostedBaseURL) {
       const selfhostedModels: Record<string, Model> = {}
-      const models = selfhostedConfig?.models ?? [{ id: "default", name: "Default Model" }]
       const normalizedURL = selfhostedBaseURL.endsWith("/v1") ? selfhostedBaseURL : `${selfhostedBaseURL}/v1`
+
+      // Try to auto-fetch models from the server's /v1/models endpoint
+      let models: Array<{ id: string; name?: string; context_length?: number; max_output?: number }> = []
+      try {
+        const modelsURL = `${normalizedURL}/models`
+        log.info("fetching models from server", { url: modelsURL })
+        const response = await fetch(modelsURL, {
+          headers: {
+            "Authorization": `Bearer ${(selfhostedAuth?.type === "api" ? selfhostedAuth.key : undefined) || selfhostedConfig?.apiKey || "no-key"}`,
+          },
+          signal: AbortSignal.timeout(5000), // 5 second timeout
+        })
+        if (response.ok) {
+          const data = await response.json() as { data?: Array<{ id: string; name?: string; context_length?: number; max_output?: number }> }
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            models = data.data.map(m => ({
+              id: m.id,
+              name: m.name || m.id,
+              context_length: m.context_length,
+              max_output: m.max_output,
+            }))
+            log.info("auto-discovered models from server", { count: models.length, models: models.map(m => m.id) })
+          }
+        }
+      } catch (e) {
+        log.warn("failed to fetch models from server, using config/defaults", { error: String(e) })
+      }
+
+      // Fall back to config-defined models or default
+      if (models.length === 0) {
+        models = selfhostedConfig?.models ?? [{ id: "default", name: "Default Model" }]
+      }
 
       for (const model of models) {
         selfhostedModels[model.id] = {
@@ -760,8 +791,9 @@ export namespace Provider {
             cache: { read: 0, write: 0 },
           },
           limit: {
-            context: model.contextLength || 8192,
-            output: model.maxOutput || 4096,
+            // Support both camelCase (config) and snake_case (API response)
+            context: (model as any).contextLength || (model as any).context_length || 8192,
+            output: (model as any).maxOutput || (model as any).max_output || 4096,
           },
           capabilities: {
             temperature: true,
