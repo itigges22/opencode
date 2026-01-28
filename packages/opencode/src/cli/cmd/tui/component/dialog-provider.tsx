@@ -293,12 +293,14 @@ function SelfhostedMethod() {
           </text>
         </box>
       }
-      onConfirm={(value) => {
+      onConfirm={async (value) => {
         if (!value) return
         // Normalize URL - remove trailing slash
         let url = value.trim()
         if (url.endsWith("/")) url = url.slice(0, -1)
         if (url.endsWith("/v1")) url = url.slice(0, -3)
+        // Small delay to let the current dialog unmount properly
+        await new Promise(resolve => setTimeout(resolve, 50))
         // Move to API key prompt
         dialog.replace(() => <SelfhostedApiKeyMethod serverURL={url} />)
       }}
