@@ -181,8 +181,9 @@ export namespace Provider {
       const config = await Config.get()
       const auth = await Auth.get("selfhosted")
 
-      // Get baseURL from config or environment
-      const baseURL = config.selfhosted?.baseURL
+      // Get baseURL from auth storage, config, or environment (in priority order)
+      const baseURL = (auth?.type === "api" ? auth.baseURL : undefined)
+        || config.selfhosted?.baseURL
         || process.env.SELFHOSTED_API_URL
         || process.env.RAG_API_URL
 
@@ -726,11 +727,18 @@ export namespace Provider {
 
     const configProviders = Object.entries(config.provider ?? {})
 
-    // Add selfhosted provider from config
+    // Add selfhosted provider from config or auth storage
     const selfhostedConfig = config.selfhosted
-    if (selfhostedConfig?.baseURL) {
+    const selfhostedAuth = await Auth.get("selfhosted")
+    const selfhostedBaseURL = (selfhostedAuth?.type === "api" ? selfhostedAuth.baseURL : undefined)
+      || selfhostedConfig?.baseURL
+      || process.env.SELFHOSTED_API_URL
+      || process.env.RAG_API_URL
+
+    if (selfhostedBaseURL) {
       const selfhostedModels: Record<string, Model> = {}
-      const models = selfhostedConfig.models ?? [{ id: "default", name: "Default Model" }]
+      const models = selfhostedConfig?.models ?? [{ id: "default", name: "Default Model" }]
+      const normalizedURL = selfhostedBaseURL.endsWith("/v1") ? selfhostedBaseURL : `${selfhostedBaseURL}/v1`
 
       for (const model of models) {
         selfhostedModels[model.id] = {
@@ -740,7 +748,7 @@ export namespace Provider {
           family: "selfhosted",
           api: {
             id: model.id,
-            url: selfhostedConfig.baseURL.endsWith("/v1") ? selfhostedConfig.baseURL : `${selfhostedConfig.baseURL}/v1`,
+            url: normalizedURL,
             npm: "@ai-sdk/openai-compatible",
           },
           status: "active",
@@ -769,14 +777,20 @@ export namespace Provider {
         }
       }
 
+      const selfhostedApiKey = (selfhostedAuth?.type === "api" ? selfhostedAuth.key : undefined)
+        || selfhostedConfig?.apiKey
+        || process.env.SELFHOSTED_API_KEY
+        || process.env.RAG_API_KEY
+        || "no-key"
+
       database["selfhosted"] = {
         id: "selfhosted",
-        name: selfhostedConfig.name || "Self-Hosted LLM",
+        name: selfhostedConfig?.name || "Self-Hosted LLM",
         source: "config",
         env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
         options: {
-          baseURL: selfhostedConfig.baseURL.endsWith("/v1") ? selfhostedConfig.baseURL : `${selfhostedConfig.baseURL}/v1`,
-          apiKey: selfhostedConfig.apiKey || process.env.SELFHOSTED_API_KEY || process.env.RAG_API_KEY || "no-key",
+          baseURL: normalizedURL,
+          apiKey: selfhostedApiKey,
         },
         models: selfhostedModels,
       }
