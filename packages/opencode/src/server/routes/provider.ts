@@ -47,6 +47,31 @@ export const ProviderRoutes = lazy(() =>
           }
         }
 
+        // Always add selfhosted provider option
+        if (!disabled.has("selfhosted")) {
+          filteredProviders["selfhosted"] = {
+            id: "selfhosted",
+            name: "Self-Hosted LLM",
+            env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
+            npm: "@ai-sdk/openai-compatible",
+            models: {
+              "default": {
+                id: "default",
+                name: "Default Model",
+                family: "selfhosted",
+                release_date: new Date().toISOString().split("T")[0],
+                attachment: false,
+                reasoning: true,
+                temperature: true,
+                tool_call: true,
+                cost: { input: 0, output: 0 },
+                limit: { context: 8192, output: 4096 },
+                options: {},
+              },
+            },
+          }
+        }
+
         const connected = await Provider.list()
         const providers = Object.assign(
           mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),

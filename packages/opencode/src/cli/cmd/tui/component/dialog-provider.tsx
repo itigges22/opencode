@@ -20,6 +20,7 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   "github-copilot": 2,
   openai: 3,
   google: 4,
+  selfhosted: 5,
 }
 
 export function createDialogProviderOptions() {
@@ -40,6 +41,7 @@ export function createDialogProviderOptions() {
             opencode: "(Recommended)",
             anthropic: "(Claude Max or API key)",
             openai: "(ChatGPT Plus/Pro or API key)",
+            selfhosted: "(llama.cpp, vLLM, or compatible)",
           }[provider.id],
           category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Other",
           footer: isConnected ? "Connected" : undefined,
@@ -234,6 +236,15 @@ function ApiMethod(props: ApiMethodProps) {
             </text>
             <text fg={theme.text}>
               Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key
+            </text>
+          </box>
+        ) : props.providerID === "selfhosted" ? (
+          <box gap={1}>
+            <text fg={theme.textMuted}>
+              Connect to your self-hosted LLM server (llama.cpp, vLLM, or OpenAI-compatible API).
+            </text>
+            <text fg={theme.text}>
+              Get an API key from your admin portal (e.g., <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>)
             </text>
           </box>
         ) : undefined
