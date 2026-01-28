@@ -200,11 +200,11 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     if (evt.name === "end") moveTo(flat().length - 1)
 
     if (evt.name === "return") {
+      evt.preventDefault()
+      evt.stopPropagation()
       if (destroyed) return
       const option = selected()
       if (option) {
-        evt.preventDefault()
-        evt.stopPropagation()
         if (option.onSelect) option.onSelect(dialog)
         if (destroyed) return
         props.onSelect?.(option)
