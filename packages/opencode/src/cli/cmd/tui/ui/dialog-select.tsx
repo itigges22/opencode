@@ -259,7 +259,14 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
             cursorColor={theme.primary}
             focusedTextColor={theme.textMuted}
             ref={(r) => {
+              if (destroyed) return
+              // Clear any pending focus timeout before setting a new one
+              if (focusTimeout) {
+                clearTimeout(focusTimeout)
+                focusTimeout = null
+              }
               input = r
+              if (!r) return
               focusTimeout = setTimeout(() => {
                 if (!destroyed && input && !input.isDestroyed) {
                   input.focus()
