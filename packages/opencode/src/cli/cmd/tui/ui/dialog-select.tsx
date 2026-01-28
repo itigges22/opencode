@@ -80,6 +80,14 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       clearTimeout(focusTimeout)
       focusTimeout = null
     }
+    // Blur input during cleanup to prevent EditBuffer access after destruction
+    try {
+      if (input && !input.isDestroyed) {
+        input.blur()
+      }
+    } catch (e) {
+      // Ignore - component may already be partially destroyed
+    }
   })
 
   const filtered = createMemo(() => {
@@ -206,8 +214,12 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       const option = selected()
       if (option) {
         // Blur input before calling onSelect to prevent EditBuffer access during destruction
-        if (input && !input.isDestroyed) {
-          input.blur()
+        try {
+          if (input && !input.isDestroyed) {
+            input.blur()
+          }
+        } catch (e) {
+          // Ignore errors during blur - component may be partially destroyed
         }
         if (option.onSelect) option.onSelect(dialog)
         if (destroyed) return
@@ -324,8 +336,12 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                         onMouseUp={() => {
                           if (destroyed) return
                           // Blur input before calling onSelect to prevent EditBuffer access during destruction
-                          if (input && !input.isDestroyed) {
-                            input.blur()
+                          try {
+                            if (input && !input.isDestroyed) {
+                              input.blur()
+                            }
+                          } catch (e) {
+                            // Ignore errors during blur
                           }
                           option.onSelect?.(dialog)
                           if (destroyed) return
