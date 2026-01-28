@@ -272,80 +272,71 @@ function ApiMethod(props: ApiMethodProps) {
 
 /**
  * Special method for selfhosted provider that collects URL + API key
+ * Uses internal state to show URL prompt first, then API key prompt
  */
 function SelfhostedMethod() {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
   const { theme } = useTheme()
+  const [step, setStep] = createSignal<"url" | "apikey">("url")
+  const [serverURL, setServerURL] = createSignal("")
 
   return (
-    <DialogPrompt
-      title="Server URL"
-      placeholder="http://192.168.1.52:31144"
-      description={
-        <box gap={1}>
-          <text fg={theme.textMuted}>
-            Enter the URL of your self-hosted LLM server (llama.cpp, vLLM, or OpenAI-compatible).
-          </text>
-          <text fg={theme.text}>
-            Example: <span style={{ fg: theme.primary }}>http://llm.jitigges.com:31144</span>
-          </text>
-        </box>
-      }
-      onConfirm={async (value) => {
-        if (!value) return
-        // Normalize URL - remove trailing slash
-        let url = value.trim()
-        if (url.endsWith("/")) url = url.slice(0, -1)
-        if (url.endsWith("/v1")) url = url.slice(0, -3)
-        // Small delay to let the current dialog unmount properly
-        await new Promise(resolve => setTimeout(resolve, 50))
-        // Move to API key prompt
-        dialog.replace(() => <SelfhostedApiKeyMethod serverURL={url} />)
-      }}
-    />
+    <Show when={step() === "url"} fallback={
+      <DialogPrompt
+        title="API Key"
+        placeholder="sk-llm-..."
+        description={
+          <box gap={1}>
+            <text fg={theme.textMuted}>
+              Enter your API key for {serverURL()}
+            </text>
+            <text fg={theme.text}>
+              Get a key from your admin portal (e.g., <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>)
+            </text>
+          </box>
+        }
+        onConfirm={async (value) => {
+          if (!value) return
+          await sdk.client.auth.set({
+            providerID: "selfhosted",
+            auth: {
+              type: "api",
+              key: value,
+              baseURL: serverURL(),
+            },
+          })
+          await sdk.client.instance.dispose()
+          await sync.bootstrap()
+          dialog.replace(() => <DialogModel providerID="selfhosted" />)
+        }}
+      />
+    }>
+      <DialogPrompt
+        title="Server URL"
+        placeholder="http://192.168.1.52:31144"
+        description={
+          <box gap={1}>
+            <text fg={theme.textMuted}>
+              Enter the URL of your self-hosted LLM server (llama.cpp, vLLM, or OpenAI-compatible).
+            </text>
+            <text fg={theme.text}>
+              Example: <span style={{ fg: theme.primary }}>http://llm.jitigges.com:31144</span>
+            </text>
+          </box>
+        }
+        onConfirm={(value) => {
+          if (!value) return
+          // Normalize URL - remove trailing slash
+          let url = value.trim()
+          if (url.endsWith("/")) url = url.slice(0, -1)
+          if (url.endsWith("/v1")) url = url.slice(0, -3)
+          setServerURL(url)
+          setStep("apikey")
+        }}
+      />
+    </Show>
   )
 }
 
-interface SelfhostedApiKeyMethodProps {
-  serverURL: string
-}
-
-function SelfhostedApiKeyMethod(props: SelfhostedApiKeyMethodProps) {
-  const dialog = useDialog()
-  const sdk = useSDK()
-  const sync = useSync()
-  const { theme } = useTheme()
-
-  return (
-    <DialogPrompt
-      title="API Key"
-      placeholder="sk-llm-..."
-      description={
-        <box gap={1}>
-          <text fg={theme.textMuted}>
-            Enter your API key for {props.serverURL}
-          </text>
-          <text fg={theme.text}>
-            Get a key from your admin portal (e.g., <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>)
-          </text>
-        </box>
-      }
-      onConfirm={async (value) => {
-        if (!value) return
-        await sdk.client.auth.set({
-          providerID: "selfhosted",
-          auth: {
-            type: "api",
-            key: value,
-            baseURL: props.serverURL,
-          },
-        })
-        await sdk.client.instance.dispose()
-        await sync.bootstrap()
-        dialog.replace(() => <DialogModel providerID="selfhosted" />)
-      }}
-    />
-  )
-}
