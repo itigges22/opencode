@@ -2,7 +2,7 @@ import { TextareaRenderable, TextAttributes } from "@opentui/core"
 import { useTheme } from "../context/theme"
 import { useDialog, type DialogContext } from "./dialog"
 import { createStore } from "solid-js/store"
-import { onMount, Show, type JSX } from "solid-js"
+import { onMount, onCleanup, Show, type JSX } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
 
 export type DialogExportOptionsProps = {
@@ -25,6 +25,17 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
   const dialog = useDialog()
   const { theme } = useTheme()
   let textarea: TextareaRenderable
+  let focusTimeout: ReturnType<typeof setTimeout> | null = null
+  let destroyed = false
+
+  onCleanup(() => {
+    destroyed = true
+    if (focusTimeout) {
+      clearTimeout(focusTimeout)
+      focusTimeout = null
+    }
+  })
+
   const [store, setStore] = createStore({
     thinking: props.defaultThinking,
     toolDetails: props.defaultToolDetails,
@@ -67,10 +78,14 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
 
   onMount(() => {
     dialog.setSize("medium")
-    setTimeout(() => {
-      textarea.focus()
+    focusTimeout = setTimeout(() => {
+      if (!destroyed && textarea && !textarea.isDestroyed) {
+        textarea.focus()
+      }
     }, 1)
-    textarea.gotoLineEnd()
+    if (textarea && !textarea.isDestroyed) {
+      textarea.gotoLineEnd()
+    }
   })
 
   return (
