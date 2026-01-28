@@ -29,7 +29,7 @@ export function DialogPrompt(props: DialogPromptProps) {
   })
 
   useKeyboard((evt) => {
-    if (evt.name === "return" && !destroyed) {
+    if (evt.name === "return" && !destroyed && textarea && !textarea.isDestroyed) {
       props.onConfirm?.(textarea.plainText)
     }
   })
@@ -58,7 +58,9 @@ export function DialogPrompt(props: DialogPromptProps) {
         {props.description}
         <textarea
           onSubmit={() => {
-            props.onConfirm?.(textarea.plainText)
+            if (!destroyed && textarea && !textarea.isDestroyed) {
+              props.onConfirm?.(textarea.plainText)
+            }
           }}
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}

@@ -134,17 +134,17 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
       }
       if (keybind.match("input_clear", evt)) {
         evt.preventDefault()
-        const text = textarea?.plainText ?? ""
+        const text = (textarea && !textarea.isDestroyed) ? textarea.plainText : ""
         if (!text) {
           setStore("editing", false)
           return
         }
-        textarea?.setText("")
+        if (textarea && !textarea.isDestroyed) textarea.setText("")
         return
       }
       if (evt.name === "return") {
         evt.preventDefault()
-        const text = textarea?.plainText?.trim() ?? ""
+        const text = (textarea && !textarea.isDestroyed) ? textarea.plainText?.trim() : ""
         const prev = store.custom[store.tab]
 
         if (!text) {

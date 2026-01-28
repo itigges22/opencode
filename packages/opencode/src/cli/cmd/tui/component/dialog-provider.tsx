@@ -304,7 +304,8 @@ function SelfhostedMethod() {
 
   const handleSubmit = async () => {
     if (destroyed()) return
-    const value = textarea?.plainText
+    if (!textarea || textarea.isDestroyed) return
+    const value = textarea.plainText
     if (!value) return
 
     // Parse URL|API_KEY format
