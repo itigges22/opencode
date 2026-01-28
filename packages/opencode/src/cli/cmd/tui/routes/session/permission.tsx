@@ -317,7 +317,9 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
     }
     if (evt.name === "return") {
       evt.preventDefault()
-      props.onConfirm(input.plainText)
+      if (input && !input.isDestroyed) {
+        props.onConfirm(input.plainText)
+      }
     }
   })
 
