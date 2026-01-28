@@ -798,7 +798,7 @@ export namespace Provider {
       // Auto-enable selfhosted provider
       providers["selfhosted"] = database["selfhosted"]
       log.info("selfhosted provider configured", {
-        baseURL: selfhostedConfig.baseURL,
+        baseURL: selfhostedBaseURL,
         models: Object.keys(selfhostedModels)
       })
     }
