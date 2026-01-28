@@ -1,7 +1,7 @@
 import { TextareaRenderable, TextAttributes } from "@opentui/core"
 import { useTheme } from "../context/theme"
 import { useDialog, type DialogContext } from "./dialog"
-import { onMount, type JSX } from "solid-js"
+import { onMount, onCleanup, type JSX } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
 
 export type DialogPromptProps = {
@@ -17,19 +17,33 @@ export function DialogPrompt(props: DialogPromptProps) {
   const dialog = useDialog()
   const { theme } = useTheme()
   let textarea: TextareaRenderable
+  let focusTimeout: ReturnType<typeof setTimeout> | null = null
+  let destroyed = false
+
+  onCleanup(() => {
+    destroyed = true
+    if (focusTimeout) {
+      clearTimeout(focusTimeout)
+      focusTimeout = null
+    }
+  })
 
   useKeyboard((evt) => {
-    if (evt.name === "return") {
+    if (evt.name === "return" && !destroyed) {
       props.onConfirm?.(textarea.plainText)
     }
   })
 
   onMount(() => {
     dialog.setSize("medium")
-    setTimeout(() => {
-      textarea.focus()
+    focusTimeout = setTimeout(() => {
+      if (!destroyed && textarea && !textarea.isDestroyed) {
+        textarea.focus()
+      }
     }, 1)
-    textarea.gotoLineEnd()
+    if (textarea && !textarea.isDestroyed) {
+      textarea.gotoLineEnd()
+    }
   })
 
   return (
