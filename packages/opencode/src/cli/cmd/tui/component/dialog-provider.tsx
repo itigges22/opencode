@@ -333,7 +333,9 @@ function SelfhostedMethod() {
           if (url.endsWith("/")) url = url.slice(0, -1)
           if (url.endsWith("/v1")) url = url.slice(0, -3)
           setServerURL(url)
-          setStep("apikey")
+          // Defer state change to after current event handler completes
+          // This prevents EditBuffer destruction while still in use
+          setTimeout(() => setStep("apikey"), 100)
         }}
       />
     </Show>
