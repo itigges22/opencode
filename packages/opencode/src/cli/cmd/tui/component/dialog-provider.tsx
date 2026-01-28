@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onMount, Show } from "solid-js"
+import { createMemo, createSignal, onMount, onCleanup, Show } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
@@ -272,22 +272,85 @@ function ApiMethod(props: ApiMethodProps) {
 
 /**
  * Special method for selfhosted provider that collects URL + API key
- * Prompts for a combined "URL|API_KEY" input to avoid dialog switching issues
+ * Uses a custom implementation to avoid EditBuffer destruction issues
  */
 function SelfhostedMethod() {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
   const { theme } = useTheme()
+  const [destroyed, setDestroyed] = createSignal(false)
+  let textarea: any
+  let focusTimeout: ReturnType<typeof setTimeout> | null = null
+
+  // Set up focus with cleanup
+  onMount(() => {
+    dialog.setSize("medium")
+    focusTimeout = setTimeout(() => {
+      if (!destroyed() && textarea && !textarea.isDestroyed) {
+        textarea.focus()
+      }
+    }, 10)
+  })
+
+  // Clean up on unmount
+  onCleanup(() => {
+    setDestroyed(true)
+    if (focusTimeout) {
+      clearTimeout(focusTimeout)
+      focusTimeout = null
+    }
+  })
+
+  const handleSubmit = async () => {
+    if (destroyed()) return
+    const value = textarea?.plainText
+    if (!value) return
+
+    // Parse URL|API_KEY format
+    const pipeIndex = value.lastIndexOf("|")
+    if (pipeIndex === -1) return
+
+    let serverURL = value.substring(0, pipeIndex).trim()
+    const apiKey = value.substring(pipeIndex + 1).trim()
+
+    if (!serverURL || !apiKey) return
+
+    // Normalize URL
+    if (serverURL.endsWith("/")) serverURL = serverURL.slice(0, -1)
+    if (serverURL.endsWith("/v1")) serverURL = serverURL.slice(0, -3)
+
+    await sdk.client.auth.set({
+      providerID: "selfhosted",
+      auth: {
+        type: "api",
+        key: apiKey,
+        baseURL: serverURL,
+      },
+    })
+    await sdk.client.instance.dispose()
+    await sync.bootstrap()
+    dialog.replace(() => <DialogModel providerID="selfhosted" />)
+  }
+
+  useKeyboard((evt) => {
+    if (evt.name === "return" && !destroyed()) {
+      handleSubmit()
+    }
+  })
 
   return (
-    <DialogPrompt
-      title="Self-Hosted LLM Setup"
-      placeholder="http://192.168.1.52:31144|sk-llm-your-key"
-      description={
+    <box paddingLeft={2} paddingRight={2} gap={1}>
+      <box flexDirection="row" justifyContent="space-between">
+        <text attributes={TextAttributes.BOLD} fg={theme.text}>
+          Self-Hosted LLM Setup
+        </text>
+        <text fg={theme.textMuted}>esc</text>
+      </box>
+      <box gap={1}>
         <box gap={1}>
           <text fg={theme.textMuted}>
-            Enter your server URL and API key separated by a pipe (|) character:
+            Enter server URL and API key separated by | character:
           </text>
           <text fg={theme.text}>
             Format: <span style={{ fg: theme.primary }}>SERVER_URL|API_KEY</span>
@@ -299,39 +362,23 @@ function SelfhostedMethod() {
             Get a key from <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>
           </text>
         </box>
-      }
-      onConfirm={async (value) => {
-        if (!value) return
-
-        // Parse URL|API_KEY format
-        const pipeIndex = value.lastIndexOf("|")
-        if (pipeIndex === -1) {
-          // No pipe found - treat entire input as URL, use empty key
-          return
-        }
-
-        let serverURL = value.substring(0, pipeIndex).trim()
-        const apiKey = value.substring(pipeIndex + 1).trim()
-
-        if (!serverURL || !apiKey) return
-
-        // Normalize URL
-        if (serverURL.endsWith("/")) serverURL = serverURL.slice(0, -1)
-        if (serverURL.endsWith("/v1")) serverURL = serverURL.slice(0, -3)
-
-        await sdk.client.auth.set({
-          providerID: "selfhosted",
-          auth: {
-            type: "api",
-            key: apiKey,
-            baseURL: serverURL,
-          },
-        })
-        await sdk.client.instance.dispose()
-        await sync.bootstrap()
-        dialog.replace(() => <DialogModel providerID="selfhosted" />)
-      }}
-    />
+        <textarea
+          onSubmit={handleSubmit}
+          height={3}
+          keyBindings={[{ name: "return", action: "submit" }]}
+          ref={(val: any) => (textarea = val)}
+          placeholder="http://192.168.1.52:31144|sk-llm-your-key"
+          textColor={theme.text}
+          focusedTextColor={theme.text}
+          cursorColor={theme.text}
+        />
+      </box>
+      <box paddingBottom={1} gap={1} flexDirection="row">
+        <text fg={theme.text}>
+          enter <span style={{ fg: theme.textMuted }}>submit</span>
+        </text>
+      </box>
+    </box>
   )
 }
 
