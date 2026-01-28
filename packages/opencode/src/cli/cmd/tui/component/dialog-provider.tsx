@@ -278,37 +278,44 @@ function SelfhostedMethod() {
   const sdk = useSDK()
   const sync = useSync()
   const { theme } = useTheme()
-  const [serverURL, setServerURL] = createSignal("")
 
-  // Step 1: Prompt for server URL
-  if (!serverURL()) {
-    return (
-      <DialogPrompt
-        title="Server URL"
-        placeholder="http://192.168.1.52:31144"
-        description={
-          <box gap={1}>
-            <text fg={theme.textMuted}>
-              Enter the URL of your self-hosted LLM server (llama.cpp, vLLM, or OpenAI-compatible).
-            </text>
-            <text fg={theme.text}>
-              Example: <span style={{ fg: theme.primary }}>http://llm.jitigges.com:31144</span>
-            </text>
-          </box>
-        }
-        onConfirm={(value) => {
-          if (!value) return
-          // Normalize URL - remove trailing slash
-          let url = value.trim()
-          if (url.endsWith("/")) url = url.slice(0, -1)
-          if (url.endsWith("/v1")) url = url.slice(0, -3)
-          setServerURL(url)
-        }}
-      />
-    )
-  }
+  return (
+    <DialogPrompt
+      title="Server URL"
+      placeholder="http://192.168.1.52:31144"
+      description={
+        <box gap={1}>
+          <text fg={theme.textMuted}>
+            Enter the URL of your self-hosted LLM server (llama.cpp, vLLM, or OpenAI-compatible).
+          </text>
+          <text fg={theme.text}>
+            Example: <span style={{ fg: theme.primary }}>http://llm.jitigges.com:31144</span>
+          </text>
+        </box>
+      }
+      onConfirm={(value) => {
+        if (!value) return
+        // Normalize URL - remove trailing slash
+        let url = value.trim()
+        if (url.endsWith("/")) url = url.slice(0, -1)
+        if (url.endsWith("/v1")) url = url.slice(0, -3)
+        // Move to API key prompt
+        dialog.replace(() => <SelfhostedApiKeyMethod serverURL={url} />)
+      }}
+    />
+  )
+}
 
-  // Step 2: Prompt for API key
+interface SelfhostedApiKeyMethodProps {
+  serverURL: string
+}
+
+function SelfhostedApiKeyMethod(props: SelfhostedApiKeyMethodProps) {
+  const dialog = useDialog()
+  const sdk = useSDK()
+  const sync = useSync()
+  const { theme } = useTheme()
+
   return (
     <DialogPrompt
       title="API Key"
@@ -316,7 +323,7 @@ function SelfhostedMethod() {
       description={
         <box gap={1}>
           <text fg={theme.textMuted}>
-            Enter your API key for {serverURL()}
+            Enter your API key for {props.serverURL}
           </text>
           <text fg={theme.text}>
             Get a key from your admin portal (e.g., <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>)
@@ -330,7 +337,7 @@ function SelfhostedMethod() {
           auth: {
             type: "api",
             key: value,
-            baseURL: serverURL(),
+            baseURL: props.serverURL,
           },
         })
         await sdk.client.instance.dispose()
