@@ -249,6 +249,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         <box paddingTop={1} paddingBottom={1}>
           <input
             onInput={(e) => {
+              if (destroyed) return
               batch(() => {
                 setStore("filter", e)
                 props.onFilter?.(e)
@@ -303,19 +304,24 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                         id={JSON.stringify(option.value)}
                         flexDirection="row"
                         onMouseMove={() => {
+                          if (destroyed) return
                           setStore("input", "mouse")
                         }}
                         onMouseUp={() => {
+                          if (destroyed) return
                           option.onSelect?.(dialog)
+                          if (destroyed) return
                           props.onSelect?.(option)
                         }}
                         onMouseOver={() => {
+                          if (destroyed) return
                           if (store.input !== "mouse") return
                           const index = flat().findIndex((x) => isDeepEqual(x.value, option.value))
                           if (index === -1) return
                           moveTo(index)
                         }}
                         onMouseDown={() => {
+                          if (destroyed) return
                           const index = flat().findIndex((x) => isDeepEqual(x.value, option.value))
                           if (index === -1) return
                           moveTo(index)
