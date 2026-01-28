@@ -147,30 +147,23 @@ export namespace Guardrails {
    * Check if a directory has valid project markers
    */
   export async function hasProjectMarker(directory: string): Promise<{ valid: boolean; marker?: string }> {
-    for (const marker of PROJECT_MARKERS) {
-      const markerPath = path.join(directory, marker)
-      try {
-        const file = Bun.file(markerPath)
-        if (await file.exists()) {
-          return { valid: true, marker }
-        }
-      } catch {
-        // Continue checking other markers
-      }
-    }
-
-    // Also check parent directories for .git (worktree support)
+    // Check the directory itself and all parent directories for any project marker
+    // This supports monorepo setups where subdirectories don't have their own markers
     let current = directory
     const root = path.parse(current).root
+
     while (current !== root) {
-      const gitPath = path.join(current, ".git")
-      try {
-        const file = Bun.file(gitPath)
-        if (await file.exists()) {
-          return { valid: true, marker: ".git (parent)" }
+      for (const marker of PROJECT_MARKERS) {
+        const markerPath = path.join(current, marker)
+        try {
+          const file = Bun.file(markerPath)
+          if (await file.exists()) {
+            const isParent = current !== directory
+            return { valid: true, marker: isParent ? `${marker} (parent)` : marker }
+          }
+        } catch {
+          // Continue checking other markers
         }
-      } catch {
-        // Continue
       }
       current = path.dirname(current)
     }

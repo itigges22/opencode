@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import path from "path"
+import fs from "fs/promises"
 import { Instance } from "../../src/project/instance"
 import { Server } from "../../src/server/server"
 import { Session } from "../../src/session"
@@ -18,6 +19,9 @@ describe("session.list", () => {
         const first = await Session.create({})
 
         const otherDir = path.join(projectRoot, "..", "__session_list_other")
+        // Create directory with project marker for guardrails
+        await fs.mkdir(otherDir, { recursive: true })
+        await Bun.write(path.join(otherDir, ".opencode-project"), "")
         const second = await Instance.provide({
           directory: otherDir,
           fn: async () => Session.create({}),

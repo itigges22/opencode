@@ -48,6 +48,11 @@ delete process.env["FIREWORKS_API_KEY"]
 delete process.env["CEREBRAS_API_KEY"]
 delete process.env["SAMBANOVA_API_KEY"]
 
+// Create /tmp/project with marker for tests that use fixed paths
+const tmpProject = "/tmp/project"
+await fs.mkdir(tmpProject, { recursive: true })
+await fs.writeFile(path.join(tmpProject, ".opencode-project"), "")
+
 // Now safe to import from src/
 const { Log } = await import("../src/util/log")
 

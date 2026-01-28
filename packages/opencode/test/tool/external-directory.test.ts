@@ -26,7 +26,7 @@ describe("tool.assertExternalDirectory", () => {
     }
 
     await Instance.provide({
-      directory: "/tmp",
+      directory: "/tmp/project",
       fn: async () => {
         await assertExternalDirectory(ctx)
       },

@@ -18,6 +18,8 @@ type TmpDirOptions<T> = {
 export async function tmpdir<T>(options?: TmpDirOptions<T>) {
   const dirpath = sanitizePath(path.join(os.tmpdir(), "opencode-test-" + Math.random().toString(36).slice(2)))
   await fs.mkdir(dirpath, { recursive: true })
+  // Always create a project marker for test directories (required by guardrails)
+  await Bun.write(path.join(dirpath, ".opencode-project"), "")
   if (options?.git) {
     await $`git init`.cwd(dirpath).quiet()
     await $`git commit --allow-empty -m "root commit ${dirpath}"`.cwd(dirpath).quiet()
