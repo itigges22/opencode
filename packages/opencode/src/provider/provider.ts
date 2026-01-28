@@ -177,6 +177,21 @@ export namespace Provider {
         },
       }
     },
+    selfhosted: async () => {
+      const config = await Config.get()
+      if (!config.selfhosted?.baseURL) {
+        return { autoload: false }
+      }
+      return {
+        autoload: true,
+        options: {
+          baseURL: config.selfhosted.baseURL.endsWith("/v1")
+            ? config.selfhosted.baseURL
+            : `${config.selfhosted.baseURL}/v1`,
+          apiKey: config.selfhosted.apiKey || process.env.SELFHOSTED_API_KEY || process.env.RAG_API_KEY || "no-key",
+        },
+      }
+    },
     "amazon-bedrock": async () => {
       const config = await Config.get()
       const providerConfig = config.provider?.["amazon-bedrock"]
@@ -697,6 +712,69 @@ export namespace Provider {
     log.info("init")
 
     const configProviders = Object.entries(config.provider ?? {})
+
+    // Add selfhosted provider from config
+    const selfhostedConfig = config.selfhosted
+    if (selfhostedConfig?.baseURL) {
+      const selfhostedModels: Record<string, Model> = {}
+      const models = selfhostedConfig.models ?? [{ id: "default", name: "Default Model" }]
+
+      for (const model of models) {
+        selfhostedModels[model.id] = {
+          id: model.id,
+          providerID: "selfhosted",
+          name: model.name || model.id,
+          family: "selfhosted",
+          api: {
+            id: model.id,
+            url: selfhostedConfig.baseURL.endsWith("/v1") ? selfhostedConfig.baseURL : `${selfhostedConfig.baseURL}/v1`,
+            npm: "@ai-sdk/openai-compatible",
+          },
+          status: "active",
+          headers: {},
+          options: {},
+          cost: {
+            input: 0,
+            output: 0,
+            cache: { read: 0, write: 0 },
+          },
+          limit: {
+            context: model.contextLength || 8192,
+            output: model.maxOutput || 4096,
+          },
+          capabilities: {
+            temperature: true,
+            reasoning: true,
+            attachment: false,
+            toolcall: true,
+            input: { text: true, audio: false, image: false, video: false, pdf: false },
+            output: { text: true, audio: false, image: false, video: false, pdf: false },
+            interleaved: false,
+          },
+          release_date: new Date().toISOString().split("T")[0],
+          variants: {},
+        }
+      }
+
+      database["selfhosted"] = {
+        id: "selfhosted",
+        name: selfhostedConfig.name || "Self-Hosted LLM",
+        source: "config",
+        env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
+        options: {
+          baseURL: selfhostedConfig.baseURL.endsWith("/v1") ? selfhostedConfig.baseURL : `${selfhostedConfig.baseURL}/v1`,
+          apiKey: selfhostedConfig.apiKey || process.env.SELFHOSTED_API_KEY || process.env.RAG_API_KEY || "no-key",
+        },
+        models: selfhostedModels,
+      }
+
+      // Auto-enable selfhosted provider
+      providers["selfhosted"] = database["selfhosted"]
+      log.info("selfhosted provider configured", {
+        baseURL: selfhostedConfig.baseURL,
+        models: Object.keys(selfhostedModels)
+      })
+    }
 
     // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot
     if (database["github-copilot"]) {

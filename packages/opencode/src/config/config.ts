@@ -1054,6 +1054,20 @@ export namespace Config {
         })
         .optional()
         .describe("RAG integration settings for enhanced code context"),
+      selfhosted: z
+        .object({
+          name: z.string().optional().describe("Display name for the self-hosted provider"),
+          baseURL: z.string().describe("Base URL of the self-hosted LLM API (e.g., http://192.168.1.52:8000/v1)"),
+          apiKey: z.string().optional().describe("API key for authentication"),
+          models: z.array(z.object({
+            id: z.string().describe("Model ID as recognized by the server (e.g., qwen3)"),
+            name: z.string().optional().describe("Display name for the model (e.g., Qwen3-14B)"),
+            contextLength: z.number().optional().describe("Context window size in tokens"),
+            maxOutput: z.number().optional().describe("Maximum output tokens"),
+          })).optional().describe("Available models on the self-hosted server"),
+        })
+        .optional()
+        .describe("Self-hosted LLM configuration for llama.cpp, vLLM, or other OpenAI-compatible servers"),
       experimental: z
         .object({
           hook: z
