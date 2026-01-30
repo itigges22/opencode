@@ -1336,12 +1336,18 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
 function TextPart(props: { last: boolean; part: TextPart; message: AssistantMessage }) {
   const ctx = use()
   const { theme, syntax } = useTheme()
+  // Strip <think></think> tags from models like Qwen3 that embed thinking inline
+  const content = createMemo(() => {
+    return props.part.text
+      .replace(/<think>[\s\S]*?<\/think>\s*/g, "")
+      .trim()
+  })
   return (
-    <Show when={props.part.text.trim()}>
+    <Show when={content()}>
       <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexShrink={0}>
         <Switch>
           <Match when={Flag.OPENCODE_EXPERIMENTAL_MARKDOWN}>
-            <markdown syntaxStyle={syntax()} content={props.part.text.trim()} conceal={ctx.conceal()} />
+            <markdown syntaxStyle={syntax()} content={content()} conceal={ctx.conceal()} />
           </Match>
           <Match when={!Flag.OPENCODE_EXPERIMENTAL_MARKDOWN}>
             <code
@@ -1349,7 +1355,7 @@ function TextPart(props: { last: boolean; part: TextPart; message: AssistantMess
               drawUnstyledText={false}
               streaming={true}
               syntaxStyle={syntax()}
-              content={props.part.text.trim()}
+              content={content()}
               conceal={ctx.conceal()}
               fg={theme.text}
             />
