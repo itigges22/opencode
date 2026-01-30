@@ -187,7 +187,13 @@ export namespace LLM {
       })
     }
 
+    // Add stop sequences for selfhosted models to prevent generation loops
+    const stopSequences = input.model.providerID === "selfhosted"
+      ? ["<|im_end|>", "<|im_start|>", "<|endoftext|>"]
+      : undefined
+
     return streamText({
+      stopSequences,
       onError(error) {
         l.error("stream error", {
           error,
