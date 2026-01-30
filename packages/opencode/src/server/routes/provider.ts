@@ -65,7 +65,7 @@ export const ProviderRoutes = lazy(() =>
                 temperature: true,
                 tool_call: true,
                 cost: { input: 0, output: 0 },
-                limit: { context: 8192, output: 4096 },
+                limit: { context: 16384, output: 4096, input: 14336 },
                 options: {},
               },
             },

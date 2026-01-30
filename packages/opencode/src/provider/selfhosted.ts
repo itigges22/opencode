@@ -19,7 +19,7 @@ export namespace SelfHosted {
     models: z.array(z.object({
       id: z.string().describe("Model ID as recognized by the server"),
       name: z.string().optional().describe("Display name for the model"),
-      contextLength: z.number().optional().default(8192),
+      contextLength: z.number().optional().default(16384),
       maxOutput: z.number().optional().default(4096),
     })).optional(),
   })
@@ -52,7 +52,7 @@ export namespace SelfHosted {
         models: [{
           id: process.env.SELFHOSTED_MODEL_ID || "qwen3",
           name: process.env.SELFHOSTED_MODEL_NAME || "Qwen3-14B",
-          contextLength: parseInt(process.env.SELFHOSTED_CONTEXT_LENGTH || "8192"),
+          contextLength: parseInt(process.env.SELFHOSTED_CONTEXT_LENGTH || "16384"),
           maxOutput: parseInt(process.env.SELFHOSTED_MAX_OUTPUT || "4096"),
         }],
       }
@@ -110,8 +110,9 @@ export namespace SelfHosted {
           output: 0,
         },
         limit: {
-          context: model.contextLength || 8192,
+          context: model.contextLength || 16384,
           output: model.maxOutput || 4096,
+          input: (model.contextLength || 16384) - 2048,
         },
         options: {},
       }

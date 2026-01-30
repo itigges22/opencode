@@ -751,15 +751,30 @@ export namespace Provider {
           signal: AbortSignal.timeout(5000), // 5 second timeout
         })
         if (response.ok) {
-          const data = await response.json() as { data?: Array<{ id: string; name?: string; context_length?: number; max_output?: number }> }
+          const data = await response.json() as { data?: Array<{ id: string; name?: string; context_length?: number; max_output?: number; meta?: { n_ctx_train?: number; n_ctx?: number } }> }
           if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            // Also try to fetch /props for actual running context
+            let propsContext: number | undefined
+            try {
+              const propsURL = normalizedURL.replace("/v1", "") + "/props"
+              const propsResp = await fetch(propsURL, {
+                headers: { "Authorization": `Bearer ${(selfhostedAuth?.type === "api" ? selfhostedAuth.key : undefined) || selfhostedConfig?.apiKey || "no-key"}` },
+                signal: AbortSignal.timeout(3000),
+              })
+              if (propsResp.ok) {
+                const propsData = await propsResp.json() as { default_generation_settings?: { n_ctx?: number } }
+                propsContext = propsData.default_generation_settings?.n_ctx
+              }
+            } catch { /* ignore props fetch failure */ }
+
             models = data.data.map(m => ({
               id: m.id,
               name: m.name || m.id,
-              context_length: m.context_length,
+              // Priority: props n_ctx > meta.n_ctx_train > context_length > default
+              context_length: propsContext || m.meta?.n_ctx_train || m.meta?.n_ctx || m.context_length,
               max_output: m.max_output,
             }))
-            log.info("auto-discovered models from server", { count: models.length, models: models.map(m => m.id) })
+            log.info("auto-discovered models from server", { count: models.length, models: models.map(m => ({ id: m.id, context: m.context_length })) })
           }
         }
       } catch (e) {
@@ -792,8 +807,12 @@ export namespace Provider {
           },
           limit: {
             // Support both camelCase (config) and snake_case (API response)
-            context: (model as any).contextLength || (model as any).context_length || 8192,
+            // Default to 16384 for selfhosted models (most local models support at least this)
+            context: (model as any).contextLength || (model as any).context_length || 16384,
             output: (model as any).maxOutput || (model as any).max_output || 4096,
+            // Set input limit explicitly to allow most of context for input
+            // Formula: context - reasonable_output_buffer (2048)
+            input: ((model as any).contextLength || (model as any).context_length || 16384) - 2048,
           },
           capabilities: {
             temperature: true,
