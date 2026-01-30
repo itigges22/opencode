@@ -57,7 +57,7 @@ export const ProviderRoutes = lazy(() =>
             models: {
               "default": {
                 id: "default",
-                name: "Default Model",
+                name: "Self-Hosted Model",
                 family: "selfhosted",
                 release_date: new Date().toISOString().split("T")[0],
                 attachment: false,

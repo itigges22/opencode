@@ -783,14 +783,25 @@ export namespace Provider {
 
       // Fall back to config-defined models or default
       if (models.length === 0) {
-        models = selfhostedConfig?.models ?? [{ id: "default", name: "Default Model" }]
+        models = selfhostedConfig?.models ?? [{ id: "default", name: "Self-Hosted Model" }]
+      }
+
+      // Helper to format model names nicely
+      const formatModelName = (name: string): string => {
+        // Remove common file extensions
+        let formatted = name.replace(/\.(gguf|bin|safetensors|pt|onnx)$/i, "")
+        // Replace common separators with spaces for readability
+        formatted = formatted.replace(/[-_]/g, " ")
+        // Clean up multiple spaces
+        formatted = formatted.replace(/\s+/g, " ").trim()
+        return formatted || name
       }
 
       for (const model of models) {
         selfhostedModels[model.id] = {
           id: model.id,
           providerID: "selfhosted",
-          name: model.name || model.id,
+          name: formatModelName(model.name || model.id),
           family: "selfhosted",
           api: {
             id: model.id,
