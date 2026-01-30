@@ -47,30 +47,11 @@ export const ProviderRoutes = lazy(() =>
           }
         }
 
-        // Always add selfhosted provider option
-        if (!disabled.has("selfhosted")) {
-          filteredProviders["selfhosted"] = {
-            id: "selfhosted",
-            name: "Self-Hosted LLM",
-            env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
-            npm: "@ai-sdk/openai-compatible",
-            models: {
-              "default": {
-                id: "default",
-                name: "Self-Hosted Model",
-                family: "selfhosted",
-                release_date: new Date().toISOString().split("T")[0],
-                attachment: false,
-                reasoning: true,
-                temperature: true,
-                tool_call: true,
-                cost: { input: 0, output: 0 },
-                limit: { context: 16384, output: 4096, input: 14336 },
-                options: {},
-              },
-            },
-          }
-        }
+        // NOTE: selfhosted provider is NOT added here with fake "default" model
+        // It will only appear in the provider list if:
+        // 1. Provider.list() successfully discovers models from the server
+        // 2. Or config defines explicit models
+        // This ensures OpenCode always uses REAL model names, never a fake "default"
 
         const connected = await Provider.list()
         const providers = Object.assign(

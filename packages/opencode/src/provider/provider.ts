@@ -778,91 +778,103 @@ export namespace Provider {
           }
         }
       } catch (e) {
-        log.warn("failed to fetch models from server, using config/defaults", { error: String(e) })
+        log.error("failed to fetch models from selfhosted server", { error: String(e), url: selfhostedBaseURL })
       }
 
-      // Fall back to config-defined models or default
+      // CRITICAL: No fallback to "default" - require actual model discovery
+      // If models can't be fetched, use config-defined models only (no fake default)
+      if (models.length === 0 && selfhostedConfig?.models) {
+        models = selfhostedConfig.models
+        log.info("using config-defined models for selfhosted", { models: models.map(m => m.id) })
+      }
+
+      // CRITICAL: Skip selfhosted provider entirely if no models discovered
+      // This ensures OpenCode never uses a fake "default" model
       if (models.length === 0) {
-        models = selfhostedConfig?.models ?? [{ id: "default", name: "Self-Hosted Model" }]
-      }
-
-      // Helper to format model names nicely
-      const formatModelName = (name: string): string => {
-        // Remove common file extensions
-        let formatted = name.replace(/\.(gguf|bin|safetensors|pt|onnx)$/i, "")
-        // Replace common separators with spaces for readability
-        formatted = formatted.replace(/[-_]/g, " ")
-        // Clean up multiple spaces
-        formatted = formatted.replace(/\s+/g, " ").trim()
-        return formatted || name
-      }
-
-      for (const model of models) {
-        selfhostedModels[model.id] = {
-          id: model.id,
-          providerID: "selfhosted",
-          name: formatModelName(model.name || model.id),
-          family: "selfhosted",
-          api: {
-            id: model.id,
-            url: normalizedURL,
-            npm: "@ai-sdk/openai-compatible",
-          },
-          status: "active",
-          headers: {},
-          options: {},
-          cost: {
-            input: 0,
-            output: 0,
-            cache: { read: 0, write: 0 },
-          },
-          limit: {
-            // Support both camelCase (config) and snake_case (API response)
-            // Default to 16384 for selfhosted models (most local models support at least this)
-            context: (model as any).contextLength || (model as any).context_length || 16384,
-            output: (model as any).maxOutput || (model as any).max_output || 4096,
-            // Set input limit explicitly to allow most of context for input
-            // Formula: context - reasonable_output_buffer (2048)
-            input: ((model as any).contextLength || (model as any).context_length || 16384) - 2048,
-          },
-          capabilities: {
-            temperature: true,
-            reasoning: true,
-            attachment: false,
-            toolcall: true,
-            input: { text: true, audio: false, image: false, video: false, pdf: false },
-            output: { text: true, audio: false, image: false, video: false, pdf: false },
-            interleaved: false,
-          },
-          release_date: new Date().toISOString().split("T")[0],
-          variants: {},
+        log.error("selfhosted provider SKIPPED - no models discovered from server and none in config", {
+          url: selfhostedBaseURL,
+          hint: "Ensure llama-server is running and accessible at this URL"
+        })
+        // DO NOT add selfhosted provider - exit the selfhosted block
+      } else {
+        // Helper to format model names nicely
+        const formatModelName = (name: string): string => {
+          // Remove common file extensions
+          let formatted = name.replace(/\.(gguf|bin|safetensors|pt|onnx)$/i, "")
+          // Replace common separators with spaces for readability
+          formatted = formatted.replace(/[-_]/g, " ")
+          // Clean up multiple spaces
+          formatted = formatted.replace(/\s+/g, " ").trim()
+          return formatted || name
         }
+
+        for (const model of models) {
+          selfhostedModels[model.id] = {
+            id: model.id,
+            providerID: "selfhosted",
+            name: formatModelName(model.name || model.id),
+            family: "selfhosted",
+            api: {
+              id: model.id,
+              url: normalizedURL,
+              npm: "@ai-sdk/openai-compatible",
+            },
+            status: "active",
+            headers: {},
+            options: {},
+            cost: {
+              input: 0,
+              output: 0,
+              cache: { read: 0, write: 0 },
+            },
+            limit: {
+              // Support both camelCase (config) and snake_case (API response)
+              // Default to 16384 for selfhosted models (most local models support at least this)
+              context: (model as any).contextLength || (model as any).context_length || 16384,
+              output: (model as any).maxOutput || (model as any).max_output || 4096,
+              // Set input limit explicitly to allow most of context for input
+              // Formula: context - reasonable_output_buffer (2048)
+              input: ((model as any).contextLength || (model as any).context_length || 16384) - 2048,
+            },
+            capabilities: {
+              temperature: true,
+              reasoning: true,
+              attachment: false,
+              toolcall: true,
+              input: { text: true, audio: false, image: false, video: false, pdf: false },
+              output: { text: true, audio: false, image: false, video: false, pdf: false },
+              interleaved: false,
+            },
+            release_date: new Date().toISOString().split("T")[0],
+            variants: {},
+          }
+        }
+
+        const selfhostedApiKey = (selfhostedAuth?.type === "api" ? selfhostedAuth.key : undefined)
+          || selfhostedConfig?.apiKey
+          || process.env.SELFHOSTED_API_KEY
+          || process.env.RAG_API_KEY
+          || "no-key"
+
+        database["selfhosted"] = {
+          id: "selfhosted",
+          name: selfhostedConfig?.name || "Self-Hosted LLM",
+          source: "config",
+          env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
+          options: {
+            baseURL: normalizedURL,
+            apiKey: selfhostedApiKey,
+          },
+          models: selfhostedModels,
+        }
+
+        // Auto-enable selfhosted provider
+        providers["selfhosted"] = database["selfhosted"]
+        log.info("selfhosted provider configured", {
+          baseURL: selfhostedBaseURL,
+          models: Object.keys(selfhostedModels)
+        })
       }
-
-      const selfhostedApiKey = (selfhostedAuth?.type === "api" ? selfhostedAuth.key : undefined)
-        || selfhostedConfig?.apiKey
-        || process.env.SELFHOSTED_API_KEY
-        || process.env.RAG_API_KEY
-        || "no-key"
-
-      database["selfhosted"] = {
-        id: "selfhosted",
-        name: selfhostedConfig?.name || "Self-Hosted LLM",
-        source: "config",
-        env: ["SELFHOSTED_API_KEY", "RAG_API_KEY"],
-        options: {
-          baseURL: normalizedURL,
-          apiKey: selfhostedApiKey,
-        },
-        models: selfhostedModels,
-      }
-
-      // Auto-enable selfhosted provider
-      providers["selfhosted"] = database["selfhosted"]
-      log.info("selfhosted provider configured", {
-        baseURL: selfhostedBaseURL,
-        models: Object.keys(selfhostedModels)
-      })
     }
 
     // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot
