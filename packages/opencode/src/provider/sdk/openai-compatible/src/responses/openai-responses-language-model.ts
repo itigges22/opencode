@@ -189,9 +189,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       })
     }
 
-    if (stopSequences != null) {
-      warnings.push({ type: "unsupported-setting", setting: "stopSequences" })
-    }
+    // stopSequences are supported for OpenAI-compatible APIs (llama.cpp, etc)
 
     const openaiOptions = await parseProviderOptions({
       provider: "openai",
@@ -257,6 +255,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       temperature,
       top_p: topP,
       max_output_tokens: maxOutputTokens,
+      stop: stopSequences,
 
       ...((responseFormat?.type === "json" || openaiOptions?.textVerbosity) && {
         text: {
