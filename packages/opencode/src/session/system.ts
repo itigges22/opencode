@@ -3,7 +3,7 @@ import { Ripgrep } from "../file/ripgrep"
 import { Instance } from "../project/instance"
 
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
-import PROMPT_ANTHROPIC_WITHOUT_TODO from "./prompt/qwen.txt"
+import PROMPT_QWEN from "./prompt/qwen.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
 import PROMPT_GEMINI from "./prompt/gemini.txt"
 
@@ -21,7 +21,9 @@ export namespace SystemPrompt {
       return [PROMPT_BEAST]
     if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
     if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
-    return [PROMPT_ANTHROPIC_WITHOUT_TODO]
+    // Qwen and selfhosted models
+    if (model.id.toLowerCase().includes("qwen") || model.providerID === "selfhosted") return [PROMPT_QWEN]
+    return [PROMPT_QWEN]
   }
 
   export async function environment(model: Provider.Model) {

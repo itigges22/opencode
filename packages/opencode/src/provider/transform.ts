@@ -236,9 +236,96 @@ export namespace ProviderTransform {
     })
   }
 
+  /**
+   * Determines if a prompt requires deep thinking or is a simple interaction.
+   * Used for Qwen3 models to add /think or /no_think suffix.
+   */
+  function needsThinking(text: string): boolean {
+    const lower = text.toLowerCase().trim()
+
+    // Simple greetings and small talk - no thinking needed
+    const simplePatterns = [
+      /^(hi|hello|hey|howdy|greetings|good\s*(morning|afternoon|evening))[\s!?.]*$/,
+      /^how\s+(are|r)\s+(you|u)[\s!?.]*$/,
+      /^what'?s\s+up[\s!?.]*$/,
+      /^(thanks|thank\s+you|thx)[\s!?.]*$/,
+      /^(yes|no|ok|okay|sure|yep|nope)[\s!?.]*$/,
+      /^(bye|goodbye|see\s+you|later)[\s!?.]*$/,
+    ]
+
+    for (const pattern of simplePatterns) {
+      if (pattern.test(lower)) return false
+    }
+
+    // Short messages (< 20 chars) without code-related keywords - likely simple
+    if (lower.length < 20) {
+      const codeKeywords = ['code', 'function', 'bug', 'error', 'fix', 'build', 'create', 'implement', 'write', 'debug']
+      if (!codeKeywords.some(kw => lower.includes(kw))) {
+        return false
+      }
+    }
+
+    // Everything else benefits from thinking
+    return true
+  }
+
+  /**
+   * Adds /think or /no_think suffix to the last user message for Qwen3 models.
+   */
+  function applyThinkingControl(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
+    // Only apply to selfhosted Qwen models
+    const modelId = model.id.toLowerCase()
+    if (model.providerID !== "selfhosted" || !modelId.includes("qwen")) {
+      return msgs
+    }
+
+    // Find the last user message
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const msg = msgs[i]
+      if (msg.role !== "user") continue
+
+      // Get the text content
+      let textContent = ""
+      if (typeof msg.content === "string") {
+        textContent = msg.content
+      } else if (Array.isArray(msg.content)) {
+        const textPart = msg.content.find((p: any) => p.type === "text")
+        if (textPart && "text" in textPart) {
+          textContent = textPart.text
+        }
+      }
+
+      if (!textContent) break
+
+      // Don't modify if already has thinking control
+      if (textContent.includes("/think") || textContent.includes("/no_think")) {
+        break
+      }
+
+      // Add thinking control suffix
+      const suffix = needsThinking(textContent) ? " /think" : " /no_think"
+
+      if (typeof msg.content === "string") {
+        msgs[i] = { ...msg, content: msg.content + suffix }
+      } else if (Array.isArray(msg.content)) {
+        const newContent = msg.content.map((p: any) => {
+          if (p.type === "text" && "text" in p) {
+            return { ...p, text: p.text + suffix }
+          }
+          return p
+        })
+        msgs[i] = { ...msg, content: newContent }
+      }
+      break
+    }
+
+    return msgs
+  }
+
   export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
     msgs = unsupportedParts(msgs, model)
     msgs = normalizeMessages(msgs, model, options)
+    msgs = applyThinkingControl(msgs, model)
     if (
       model.providerID === "anthropic" ||
       model.api.id.includes("anthropic") ||
