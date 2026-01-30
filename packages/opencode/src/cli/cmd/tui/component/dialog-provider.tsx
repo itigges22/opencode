@@ -355,13 +355,16 @@ function SelfhostedMethod() {
             Enter server URL and API key separated by | character:
           </text>
           <text fg={theme.text}>
-            Format: <span style={{ fg: theme.primary }}>SERVER_URL|API_KEY</span>
+            Format: <span style={{ fg: theme.primary }}>URL|API_KEY</span>
           </text>
           <text fg={theme.textMuted}>
-            Example: http://llm.jitigges.com:31144|sk-llm-abc123
+            Example: http://llm-api.jitigges.com|sk-llm-abc123
           </text>
           <text fg={theme.text}>
-            Get a key from <span style={{ fg: theme.primary }}>http://llm.jitigges.com:3000</span>
+            Get a key from your LLM API portal
+          </text>
+          <text fg={theme.textMuted}>
+            Note: The /v1 suffix is added automatically
           </text>
         </box>
         <textarea
@@ -369,7 +372,7 @@ function SelfhostedMethod() {
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}
           ref={(val: any) => (textarea = val)}
-          placeholder="http://192.168.1.52:31144|sk-llm-your-key"
+          placeholder="http://llm-api.jitigges.com|sk-llm-your-key"
           textColor={theme.text}
           focusedTextColor={theme.text}
           cursorColor={theme.text}
