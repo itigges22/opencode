@@ -47,13 +47,18 @@ export const ProviderRoutes = lazy(() =>
           }
         }
 
-        // NOTE: selfhosted provider is NOT added here with fake "default" model
-        // It will only appear in the provider list if:
-        // 1. Provider.list() successfully discovers models from the server
-        // 2. Or config defines explicit models
-        // This ensures OpenCode always uses REAL model names, never a fake "default"
-
         const connected = await Provider.list()
+
+        // Always include selfhosted in the provider list so users can configure it
+        // Even if not yet connected, it should appear as an option
+        if (!connected["selfhosted"] && !filteredProviders["selfhosted"]) {
+          filteredProviders["selfhosted"] = {
+            id: "selfhosted",
+            name: "Self-Hosted",
+            env: [],
+            models: {},
+          }
+        }
         const providers = Object.assign(
           mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
           connected,
