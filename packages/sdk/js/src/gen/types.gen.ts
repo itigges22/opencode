@@ -1666,6 +1666,7 @@ export type OAuth = {
 export type ApiAuth = {
   type: "api"
   key: string
+  baseURL?: string
 }
 
 export type WellKnownAuth = {
