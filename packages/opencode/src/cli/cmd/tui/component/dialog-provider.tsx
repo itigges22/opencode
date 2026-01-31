@@ -338,7 +338,10 @@ function SelfhostedMethod() {
     const selfhostedProvider = sync.data.provider.find((p) => p.id === "selfhosted")
     if (!selfhostedProvider || Object.keys(selfhostedProvider.models).length === 0) {
       // Model fetch failed - show error and stay on this page
-      toast.error(`Could not fetch models from ${serverURL}. Make sure llama-server is running and accessible.`)
+      toast.show({
+        variant: "error",
+        message: `Could not fetch models from ${serverURL}. Make sure llama-server is running and accessible.`,
+      })
       return
     }
 
