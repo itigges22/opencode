@@ -280,6 +280,7 @@ function SelfhostedMethod() {
   const sdk = useSDK()
   const sync = useSync()
   const { theme } = useTheme()
+  const toast = useToast()
   const [destroyed, setDestroyed] = createSignal(false)
   let textarea: any
   let focusTimeout: ReturnType<typeof setTimeout> | null = null
@@ -332,6 +333,15 @@ function SelfhostedMethod() {
     })
     await sdk.client.instance.dispose()
     await sync.bootstrap()
+
+    // Check if selfhosted provider has models after bootstrap
+    const selfhostedProvider = sync.data.provider.find((p) => p.id === "selfhosted")
+    if (!selfhostedProvider || Object.keys(selfhostedProvider.models).length === 0) {
+      // Model fetch failed - show error and stay on this page
+      toast.error(`Could not fetch models from ${serverURL}. Make sure llama-server is running and accessible.`)
+      return
+    }
+
     dialog.replace(() => <DialogModel providerID="selfhosted" />)
   }
 
